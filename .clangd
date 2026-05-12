@@ -1,0 +1,7 @@
+Diagnostics:
+  ClangTidy:
+    Add:
+      - modernize-*
+CompileFlags:
+  CompilationDatabase: build
+  Add: [-std=c++23]

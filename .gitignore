@@ -1,0 +1,11 @@
+out
+deps/*
+build
+.vs
+.vscode
+.cache
+
+cli/
+
+# Coverage files
+*.info
