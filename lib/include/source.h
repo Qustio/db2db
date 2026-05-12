@@ -1,12 +1,13 @@
 #include <initializer_list>
-#include <string_view>
 #include <filesystem>
 #include <variant>
 #include <algorithm>
 #include <span>
 #include <nanodbc/nanodbc.h>
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#ifdef _WIN32
+	#define WIN32_LEAN_AND_MEAN
+	#include <Windows.h>
+#endif
 #include <sqlext.h>
 
 

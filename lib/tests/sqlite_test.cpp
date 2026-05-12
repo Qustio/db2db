@@ -1,11 +1,10 @@
 #include <gtest/gtest.h>
 #include <source.h>
 #include <nanodbc/nanodbc.h>
-#include <ostream>
-#include <array>
 #include <print>
 #include <variant>
 
+#ifndef NDEBUG
 extern "C" {
     int __llvm_profile_write_file(void);
     void __llvm_profile_set_filename(const char *name);
@@ -33,6 +32,7 @@ namespace {
         return 0;
     }();
 }
+#endif
 
 class test_source : public source {
 public:
