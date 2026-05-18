@@ -1,7 +1,6 @@
 #include "source.h"
 
 #include <fstream>
-#include <print>
 #include <ranges>
 #include <stdexcept>
 #include <variant>
@@ -18,7 +17,6 @@ namespace {
 		short index,
 		const db_value& value
 	) {
-		std::println("ABOBA");
 		std::visit([&](const auto& v) {
 			if constexpr (std::is_same_v<std::decay_t<decltype(v)>, std::monostate>) {
 				s.bind_null(index);
@@ -112,7 +110,6 @@ db_data source::select	(
 		query
 	);
 	for (const auto& [i, param] : std::views::enumerate(params)) {
-		std::println("good dog");
 		::bind(s, i, param);
 	}
 	auto result = s.execute();
