@@ -2,38 +2,6 @@
 	"version": 3,
 	"configurePresets": [
 		{
-			"name": "base-unix",
-			"hidden": true,
-			"condition": {
-				"type": "notEquals",
-				"lhs": "${hostSystemName}",
-				"rhs": "Windows"
-			},
-			"cacheVariables": {
-				"CMAKE_C_COMPILER": "clang",
-				"CMAKE_CXX_COMPILER": "clang++",
-				"CMAKE_RC_COMPILER": "llvm-rc",
-				"LLVM_COV": "",
-				"LLVM_PROFDATA": ""
-			}
-		},
-		{
-			"name": "base-windows",
-			"hidden": true,
-			"condition": {
-				"type": "equals",
-				"lhs": "${hostSystemName}",
-				"rhs": "Windows"
-			},
-			"cacheVariables": {
-				"CMAKE_C_COMPILER": "C:/Program Files/LLVM/bin/clang.exe",
-				"CMAKE_CXX_COMPILER": "C:/Program Files/LLVM/bin/clang++.exe",
-				"CMAKE_RC_COMPILER": "C:/Program Files/LLVM/bin/llvm-rc.exe",
-				"LLVM_COV": "C:/Program Files/LLVM/bin/llvm-cov.exe",
-				"LLVM_PROFDATA": "C:/Program Files/LLVM/bin/llvm-profdata.exe"
-			}
-		},
-		{
 			"name": "base",
 			"hidden": true,
 			"generator": "Ninja",
@@ -42,7 +10,13 @@
 				"value": "x64",
 				"strategy": "external"
 			},
-			"inherits": ["base-unix", "base-windows"]
+			"cacheVariables": {
+				"CMAKE_C_COMPILER": "clang",
+				"CMAKE_CXX_COMPILER": "clang++",
+				"CMAKE_RC_COMPILER": "llvm-rc",
+				"LLVM_COV": "llvm-cov",
+				"LLVM_PROFDATA": "llvm-profdata"
+			}
 		},
 		{
 			"name": "release",
