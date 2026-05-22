@@ -28,6 +28,50 @@ namespace {
 		}, value);
 	}
 
+	void bind(
+		nanodbc::statement& s,
+		const db_data& data,
+		std::span<const nanodbc::string> columns
+	) {
+		short index = 0;
+		for (const auto& column_name : columns) {
+			auto it = data.find(column_name);
+			if (it == data.end())
+				throw std::runtime_error(std::format("No column named \"{}\"", column_name));
+			const auto& column = it->second;
+			const size_t count = column.size();
+
+			boost::container::vector<bool> nulls(count);
+			for (size_t i = 0; i < count; i++)
+				nulls[i] = std::holds_alternative<std::monostate>(column[i]);
+
+			auto first_non_null = std::ranges::find_if(column, [](const db_value& v) {
+				return !std::holds_alternative<std::monostate>(v);
+			});
+
+			if (first_non_null == column.end()) {
+				s.bind_null(index, count);
+			} else {
+				std::visit([&]<typename T>(const T&) {
+					if constexpr (std::is_same_v<T, std::monostate>) {
+						s.bind_null(index, count);
+					} else if constexpr (std::is_same_v<T, nanodbc::string>) {
+						std::vector<nanodbc::string> values(count);
+						for (size_t i = 0; i < count; i++)
+							if (!nulls[i]) values[i] = std::get<nanodbc::string>(column[i]);
+						s.bind_strings(index, values, nulls.data());
+					} else {
+						std::vector<T> values(count);
+						for (size_t i = 0; i < count; i++)
+							if (!nulls[i]) values[i] = std::get<T>(column[i]);
+						s.bind(index, values.data(), count, nulls.data());
+					}
+				}, *first_non_null);
+			}
+			index++;
+		}
+	}
+
 	db_value get(nanodbc::result& r, short col) {
 		if (r.is_null(col))
 			return std::monostate{};
@@ -180,36 +224,11 @@ void source::insert(
 	const db_data& data,
 	std::span<const nanodbc::string> columns
 ) {
-	if (data.begin()->second.size() == 0) {
+	if (data.begin()->second.size() == 0)
 		return;
-	}
-	nanodbc::statement insert_statement(
-		_connection,
-		query
-	);
-	// assert that every column have the same amount of rows
 	auto count = data.begin()->second.size();
-	short param_index = 0;
-	for (const auto& column_name : columns) {
-		auto column = data.find(column_name);
-		[[unlikely]]
-		if (column == data.end()) {
-			throw std::runtime_error(std::format("No column named \"{}\"", column_name));
-		}
-		auto column_data = column->second;
-
-		//spdlog::debug("Binding column: {}", column_name);
-		std::vector<nanodbc::string> values(count);
-		boost::container::vector<bool> nulls(count);
-
-		for (int i = 0; i < count; i++) {
-			bool is_null = std::holds_alternative<std::monostate>(column_data[i]);
-			values[i] = is_null ? "" : std::get<nanodbc::string>(column_data[i]);
-			nulls[i] = is_null;
-		}
-		insert_statement.bind_strings(param_index, values, nulls.data());
-		param_index++;
-	}
+	nanodbc::statement insert_statement(_connection, query);
+	::bind(insert_statement, data, columns);
 	nanodbc::transact(insert_statement, count);
 }
 
