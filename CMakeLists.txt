@@ -11,6 +11,7 @@ set(NANODBC_DISABLE_EXAMPLES ON)
 set(NANODBC_FORCE_LIBCXX OFF)
 set(NANODBC_DISABLE_TESTS ON)
 set(NANODBC_SHARED_LIBS ON)
+set(INSTALL_GTEST OFF)
 set(gtest_force_shared_crt ON)
 
 include(FetchContent)
