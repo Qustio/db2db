@@ -51,6 +51,16 @@
 			"configurePreset": "dev"
 		}
 	],
+	"testPresets": [
+		{
+			"name": "release",
+			"configurePreset": "release"
+		},
+		{
+			"name": "dev",
+			"configurePreset": "dev"
+		}
+	],
 	"packagePresets": [
 		{
 			"name": "release",
