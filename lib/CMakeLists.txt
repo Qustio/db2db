@@ -33,13 +33,6 @@ add_custom_command(
 	TARGET db2db
 	POST_BUILD
 	COMMAND
-		${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:nanodbc>
-		$<TARGET_FILE_DIR:db2db>
-)
-add_custom_command(
-	TARGET db2db
-	POST_BUILD
-	COMMAND
 		${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:spdlog::spdlog>
 		$<TARGET_FILE_DIR:db2db>
 )
@@ -93,13 +86,6 @@ if(ENABLE_COVERAGE)
 	)
 endif()
 
-add_custom_command(
-	TARGET db2db_test
-	POST_BUILD
-	COMMAND
-		${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:nanodbc>
-		$<TARGET_FILE_DIR:db2db_test>
-)
 add_custom_command(
 	TARGET db2db_test
 	POST_BUILD

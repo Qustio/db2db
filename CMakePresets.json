@@ -1,5 +1,5 @@
 {
-	"version": 3,
+	"version": 6,
 	"configurePresets": [
 		{
 			"name": "base",
@@ -22,8 +22,11 @@
 			"name": "release",
 			"displayName": "x64 Release",
 			"inherits": "base",
+			"installDir": "${sourceDir}/publish",
 			"cacheVariables": {
-				"CMAKE_BUILD_TYPE": "Release"
+				"CMAKE_BUILD_TYPE": "Release",
+				"CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -g",
+				"CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG -g"
 			}
 		},
 		{
@@ -36,6 +39,23 @@
 				"ENABLE_COVERAGE": "ON",
 				"CMAKE_BUILD_TYPE": "Debug"
 			}
+		}
+	],
+	"buildPresets": [
+		{
+			"name": "release",
+			"configurePreset": "release"
+		},
+		{
+			"name": "dev",
+			"configurePreset": "dev"
+		}
+	],
+	"packagePresets": [
+		{
+			"name": "release",
+			"configurePreset": "release",
+			"generators": ["ZIP"]
 		}
 	]
 }
