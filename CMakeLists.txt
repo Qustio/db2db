@@ -5,11 +5,11 @@ project("db2db")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 23)
-set(BUILD_SHARED_LIBS ON)
+set(FETCHCONTENT_QUIET OFF)
 set(NANODBC_ENABLE_UNICODE OFF)
-set(NANODBC_DISABLE_TESTS ON)
 set(NANODBC_DISABLE_EXAMPLES ON)
 set(NANODBC_FORCE_LIBCXX OFF)
+set(NANODBC_DISABLE_TESTS ON)
 set(NANODBC_SHARED_LIBS ON)
 set(gtest_force_shared_crt ON)
 
@@ -23,45 +23,60 @@ if(NOT Boost_FOUND)
 	set(BOOST_ENABLE_CMAKE ON)
 	FetchContent_Declare(
 		Boost
-		SOURCE_DIR
-		${CMAKE_SOURCE_DIR}/deps/boost-1.91.0-1-cmake/boost-1.91.0-1
+		URL https://github.com/boostorg/boost/releases/download/boost-1.91.0-1/boost-1.91.0-1-cmake.tar.xz
+		URL_HASH SHA256=cc5dc5006ecbdf0051f90979be31b4eee5987d9ae14ae9fb9c03cfa43fa3cdad
+		DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 	)
 	FetchContent_MakeAvailable(Boost)
 endif()
 
 find_package(pybind11 CONFIG)
 if(NOT pybind11_FOUND)
-	FetchContent_Declare(pybind11 SOURCE_DIR ${CMAKE_SOURCE_DIR}/deps/pybind11)
+	FetchContent_Declare(
+		pybind11
+		GIT_REPOSITORY  https://github.com/pybind/pybind11
+		GIT_TAG v3.0.4
+	)
 	FetchContent_MakeAvailable(pybind11)
 endif()
 
 find_package(ODBC REQUIRED)
 find_package(nanodbc CONFIG)
 if(NOT nanodbc_FOUND)
-	FetchContent_Declare(nanodbc SOURCE_DIR ${CMAKE_SOURCE_DIR}/deps/nanodbc)
+	FetchContent_Declare(
+		nanodbc 
+		GIT_REPOSITORY https://github.com/nanodbc/nanodbc
+		GIT_TAG fd9b4f551b0f03780168c4b2ba880dcb5777aad4
+	)
 	FetchContent_MakeAvailable(nanodbc)
 endif()
 
 find_package(spdlog CONFIG)
 if(NOT spdlog_FOUND)
-	FetchContent_Declare(spdlog SOURCE_DIR ${CMAKE_SOURCE_DIR}/deps/spdlog)
+	FetchContent_Declare(
+		spdlog
+		GIT_REPOSITORY https://github.com/gabime/spdlog
+		GIT_TAG v1.17.0
+	)
 	FetchContent_MakeAvailable(spdlog)
 endif()
 
 find_package(GTest CONFIG)
 if(NOT GTest_FOUND)
-	FetchContent_Declare(GTest SOURCE_DIR ${CMAKE_SOURCE_DIR}/deps/googletest)
-	set(BUILD_SHARED_LIBS OFF)
+	FetchContent_Declare(
+		GTest
+		GIT_REPOSITORY https://github.com/google/googletest
+		GIT_TAG v1.17.0
+	)
 	FetchContent_MakeAvailable(GTest)
-	set(BUILD_SHARED_LIBS ON)
 endif()
 
 find_package(tomlplusplus CONFIG)
 if(NOT tomlplusplus_FOUND)
 	FetchContent_Declare(
 		tomlplusplus
-		SOURCE_DIR
-		${CMAKE_SOURCE_DIR}/deps/tomlplusplus
+		GIT_REPOSITORY https://github.com/marzer/tomlplusplus
+		GIT_TAG v3.4.0
 	)
 	FetchContent_MakeAvailable(tomlplusplus)
 endif()
