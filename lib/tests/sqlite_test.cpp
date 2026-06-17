@@ -125,9 +125,9 @@ TEST_F(SelectTest, ReturnsCorrectRows) {
     exec("INSERT INTO users VALUES(1, 'alice', 9.5)");
     exec("INSERT INTO users VALUES(2, 'bob', 7.77)");
     auto result = src->select("SELECT * FROM users");
-    auto id_rows = std::vector{ db_value{"1"}, db_value{"2"} };
+    auto id_rows = std::vector{ db_value{1LL}, db_value{2LL} };
     auto name_rows = std::vector{ db_value{"alice"}, db_value{"bob"} };
-    auto score_rows = std::vector{ db_value{"9.500000"}, db_value{"7.770000"} };
+    auto score_rows = std::vector{ db_value{9.5}, db_value{7.77} };
     EXPECT_EQ(result["id"], id_rows);
     EXPECT_EQ(result["name"], name_rows);
     EXPECT_EQ(result["score"], score_rows);
@@ -164,7 +164,7 @@ TEST_F(SyncTest, SyncWithNulls) {
     auto data = src->select("SELECT * FROM users");
     dest->insert("INSERT INTO users(id, name, score) VALUES(?, ?, ?)", data, { "id", "name", "score" });
     auto result = dest->select("SELECT * FROM users");
-    auto id_rows = std::vector{ db_value{"1"}, db_value{} };
+    auto id_rows = std::vector{ db_value{1LL}, db_value{} };
 
     EXPECT_EQ(result, data);
     EXPECT_EQ(data["id"], id_rows);

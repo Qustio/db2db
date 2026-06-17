@@ -1,5 +1,6 @@
 #include "source.h"
 
+#include <any>
 #include <fstream>
 #include <ranges>
 #include <stdexcept>
@@ -28,11 +29,13 @@ namespace {
 		}, value);
 	}
 
-	void bind(
+	std::vector<std::any> bind(
 		nanodbc::statement& s,
 		const db_data& data,
 		std::span<const nanodbc::string> columns
 	) {
+		std::vector<std::any> storage;
+		storage.reserve(columns.size()*2);
 		short index = 0;
 		for (const auto& column_name : columns) {
 			auto it = data.find(column_name);
@@ -41,9 +44,10 @@ namespace {
 			const auto& column = it->second;
 			const size_t count = column.size();
 
-			boost::container::vector<bool> nulls(count);
+			auto& nulls = std::any_cast<std::vector<uint8_t>&>(
+				storage.emplace_back(std::vector<uint8_t>(count)));
 			for (size_t i = 0; i < count; i++)
-				nulls[i] = std::holds_alternative<std::monostate>(column[i]);
+				nulls[i] = std::holds_alternative<std::monostate>(column[i]) ? 1 : 0;
 
 			auto first_non_null = std::ranges::find_if(column, [](const db_value& v) {
 				return !std::holds_alternative<std::monostate>(v);
@@ -56,20 +60,23 @@ namespace {
 					if constexpr (std::is_same_v<T, std::monostate>) {
 						s.bind_null(index, count);
 					} else if constexpr (std::is_same_v<T, nanodbc::string>) {
-						std::vector<nanodbc::string> values(count);
+						auto& values = std::any_cast<std::vector<nanodbc::string>&>(
+							storage.emplace_back(std::vector<nanodbc::string>(count)));
 						for (size_t i = 0; i < count; i++)
 							if (!nulls[i]) values[i] = std::get<nanodbc::string>(column[i]);
-						s.bind_strings(index, values, nulls.data());
+						s.bind_strings(index, values, reinterpret_cast<const bool*>(nulls.data()));
 					} else {
-						std::vector<T> values(count);
+						auto& values = std::any_cast<std::vector<T>&>(
+							storage.emplace_back(std::vector<T>(count)));
 						for (size_t i = 0; i < count; i++)
 							if (!nulls[i]) values[i] = std::get<T>(column[i]);
-						s.bind(index, values.data(), count, nulls.data());
+						s.bind(index, values.data(), count, reinterpret_cast<const bool*>(nulls.data()));
 					}
 				}, *first_non_null);
 			}
 			index++;
 		}
+		return storage;
 	}
 
 	db_value get(nanodbc::result& r, short col) {
@@ -164,18 +171,11 @@ db_data source::select	(
 	while (result.next()) {
 		for (short i = 0; i < result.columns(); i++) {
 			try {
-				auto column_name = result.column_name(i);
-				if (!result.is_null(i)) {
-					auto value = result.get<nanodbc::string>(i);
-					data[column_name].push_back(db_value(value));
-				} else {
-					data[column_name].push_back({});
-				}
+				data[result.column_name(i)].push_back(::get(result, i));
 			}
 			catch (const std::runtime_error& e) {
 				spdlog::error("{}", e.what());
 			}
-
 		}
 	}
 	return data;
@@ -228,7 +228,7 @@ void source::insert(
 		return;
 	auto count = data.begin()->second.size();
 	nanodbc::statement insert_statement(_connection, query);
-	::bind(insert_statement, data, columns);
+	auto a = ::bind(insert_statement, data, columns);
 	nanodbc::transact(insert_statement, count);
 }
 
