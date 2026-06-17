@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.10)
+﻿cmake_minimum_required(VERSION 3.21.0)
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 
 project("db2db")
@@ -34,6 +34,7 @@ if(NOT pybind11_FOUND)
 	FetchContent_MakeAvailable(pybind11)
 endif()
 
+find_package(ODBC REQUIRED)
 find_package(nanodbc CONFIG)
 if(NOT nanodbc_FOUND)
 	FetchContent_Declare(nanodbc SOURCE_DIR ${CMAKE_SOURCE_DIR}/deps/nanodbc)
