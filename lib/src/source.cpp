@@ -3,6 +3,7 @@
 #include <any>
 #include <fstream>
 #include <ranges>
+#include <sqlext.h>
 #include <stdexcept>
 #include <variant>
 #include <format>
@@ -85,6 +86,7 @@ namespace {
 		switch (r.column_c_datatype(col)) {
 			case SQL_C_CHAR:
 			case SQL_C_WCHAR:
+			case SQL_C_BINARY:
 				return r.get<nanodbc::string>(col);
 			case SQL_C_SSHORT:
 				return r.get<short>(col);
@@ -110,7 +112,7 @@ namespace {
 			case SQL_C_TIMESTAMP:
 				return r.get<nanodbc::timestamp>(col);
 		}
-		throw std::runtime_error(std::format("Type \"{}\" is missing is mappin g", r.column_c_datatype(col)));
+		throw std::runtime_error(std::format("Type \"{}\" is missing is mapping", r.column_c_datatype(col)));
 	}
 }
 
