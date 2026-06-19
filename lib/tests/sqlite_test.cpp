@@ -4,7 +4,7 @@
 #include <print>
 #include <variant>
 
-#ifndef NDEBUG
+#ifdef ENABLE_COVERAGE
 extern "C" {
     int __llvm_profile_write_file(void);
     void __llvm_profile_set_filename(const char *name);
@@ -32,7 +32,7 @@ namespace {
         return 0;
     }();
 }
-#endif
+#endif // ENABLE_COVERAGE
 
 class test_source : public source {
 public:

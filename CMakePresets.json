@@ -30,6 +30,17 @@
 			}
 		},
 		{
+			"name": "srelease",
+			"displayName": "x64 SRelease",
+			"inherits": "base",
+			"installDir": "${sourceDir}/publish",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release",
+				"CMAKE_CXX_FLAGS_RELEASE": "-Os",
+				"CMAKE_C_FLAGS_RELEASE": "-Os"
+			}
+		},
+		{
 			"name": "dev",
 			"displayName": "dev clang",
 			"description": "dev build with coverage",
@@ -47,6 +58,10 @@
 			"configurePreset": "release"
 		},
 		{
+			"name": "srelease",
+			"configurePreset": "srelease"
+		},
+		{
 			"name": "dev",
 			"configurePreset": "dev"
 		}
@@ -57,6 +72,10 @@
 			"configurePreset": "release"
 		},
 		{
+			"name": "srelease",
+			"configurePreset": "srelease"
+		},
+		{
 			"name": "dev",
 			"configurePreset": "dev"
 		}
@@ -65,6 +84,11 @@
 		{
 			"name": "release",
 			"configurePreset": "release",
+			"generators": ["ZIP"]
+		},
+		{
+			"name": "srelease",
+			"configurePreset": "srelease",
 			"generators": ["ZIP"]
 		}
 	]
