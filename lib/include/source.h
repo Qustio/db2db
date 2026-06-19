@@ -1,8 +1,10 @@
 #include <initializer_list>
 #include <filesystem>
+#include <type_traits>
 #include <variant>
 #include <algorithm>
 #include <span>
+#include <format>
 #include <nanodbc/nanodbc.h>
 #ifdef _WIN32
 	#define WIN32_LEAN_AND_MEAN
@@ -69,6 +71,44 @@ using db_value = std::variant<
 	nanodbc::timestamp
 >;
 using db_data = std::unordered_map<nanodbc::string, std::vector<db_value>, case_insensitive_hash, case_insensitive_equal>;
+
+
+template<>
+struct std::formatter<db_value> {
+	constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+	auto format(const db_value& v, std::format_context& ctx) const {
+		return std::visit([&](const auto& val) -> std::format_context::iterator {
+			using T = std::decay_t<decltype(val)>;
+			if constexpr (std::is_same_v<T, std::monostate>)
+				return std::format_to(ctx.out(), "NULL");
+			else if constexpr (std::is_same_v<T, nanodbc::string>)
+				return std::format_to(ctx.out(), "{}", std::string(val.begin(), val.end()));
+			else if constexpr (std::is_same_v<T, std::monostate>)
+				return std::format_to(ctx.out(), "NULL");
+			else if constexpr (std::is_same_v<T, nanodbc::date>)
+				return std::format_to(
+					ctx.out(),
+					"{}-{:02}-{:02}",
+					val.year, val.month, val.day
+				);
+			else if constexpr (std::is_same_v<T, nanodbc::time>)
+				return std::format_to(
+					ctx.out(),
+					"{:02}:{:02}:{:02}",
+					val.hour, val.min, val.sec
+				);
+			else if constexpr (std::is_same_v<T, nanodbc::timestamp>)
+				return std::format_to(
+					ctx.out(),
+					"{}-{:02}-{:02} {:02}:{:02}:{:02}",
+					val.year, val.month, val.day, val.hour, val.min, val.sec
+				);
+			else
+				return std::vformat_to(ctx.out(), {}, std::make_format_args(val));
+		}, v);
+	}
+};
 
 void filter(db_data& data, nanodbc::string column, std::function<bool(db_value&)> fn);
 
