@@ -95,6 +95,17 @@ protected:
     }
 };
 
+class SyncTestNulls : public SqliteFixture {
+protected:
+    void SetUp() override {
+        SqliteFixture::SetUp();
+        exec_src("CREATE TABLE users (id INTEGER, name TEXT, score REAL)");
+        exec_src("INSERT INTO users VALUES(NULL, NULL, NULL)");
+        exec_src("INSERT INTO users VALUES(1, 'alice', 9.5)");
+        exec_dest("CREATE TABLE users (id INTEGER, name TEXT, score REAL)");
+    }
+};
+
 class db_type_test : public SqliteFixture {};
 
 TEST(setupTest, includeTest) {
@@ -125,9 +136,9 @@ TEST_F(SelectTest, ReturnsCorrectRows) {
     exec("INSERT INTO users VALUES(1, 'alice', 9.5)");
     exec("INSERT INTO users VALUES(2, 'bob', 7.77)");
     auto result = src->select("SELECT * FROM users");
-    auto id_rows = std::vector{ db_value{1LL}, db_value{2LL} };
-    auto name_rows = std::vector{ db_value{"alice"}, db_value{"bob"} };
-    auto score_rows = std::vector{ db_value{9.5}, db_value{7.77} };
+    auto id_rows = std::vector{ db_type{1LL}, db_type{2LL} };
+    auto name_rows = std::vector{ db_type{"alice"}, db_type{"bob"} };
+    auto score_rows = std::vector{ db_type{9.5}, db_type{7.77} };
     EXPECT_EQ(result["id"], id_rows);
     EXPECT_EQ(result["name"], name_rows);
     EXPECT_EQ(result["score"], score_rows);
@@ -142,7 +153,7 @@ TEST_F(SelectTest, SelectOneNull) {
 TEST_F(SelectTest, SelectOneParams) {
     exec("INSERT INTO users VALUES(1, 'alice', 9.5)");
     auto result = src->select_one("SELECT name FROM users where id < ?", { 5 });
-    EXPECT_EQ(result, db_value{"alice"});
+    EXPECT_EQ(result, db_type{"alice"});
 }
 
 TEST_F(SyncTest, SyncBasic) {
@@ -164,7 +175,7 @@ TEST_F(SyncTest, SyncWithNulls) {
     auto data = src->select("SELECT * FROM users");
     dest->insert("INSERT INTO users(id, name, score) VALUES(?, ?, ?)", data, { "id", "name", "score" });
     auto result = dest->select("SELECT * FROM users");
-    auto id_rows = std::vector{ db_value{1LL}, db_value{} };
+    auto id_rows = std::vector{ db_type{1LL}, db_type{} };
 
     EXPECT_EQ(result, data);
     EXPECT_EQ(data["id"], id_rows);
@@ -175,7 +186,7 @@ TEST_F(SyncTest, SyncIncremental) {
     exec_src("INSERT INTO users VALUES(2, 'bob', 3.5)");
     exec_src("INSERT INTO users VALUES(3, 'ivan', 1.1)");
     auto last_id = dest->select_one("select max(id) from users");
-    EXPECT_EQ(last_id, db_value{1ll});
+    EXPECT_EQ(last_id, db_type{1ll});
     auto data = src->select("SELECT * FROM users where id > ?", { last_id });
     dest->insert("INSERT INTO users(id, name, score) VALUES(?, ?, ?)", data, { "id", "name", "score" });
     auto result_src = src->select("SELECT * FROM users");
@@ -183,6 +194,16 @@ TEST_F(SyncTest, SyncIncremental) {
     EXPECT_EQ(result_src, result_dest);
 }
 
+TEST_F(SyncTestNulls, SyncWithNulls) {
+    exec_src("INSERT INTO users VALUES(NULL, NULL, NULL)");
+    auto data = src->select("SELECT * FROM users");
+    dest->insert("INSERT INTO users(id, name, score) VALUES(?, ?, ?)", data, { "id", "name", "score" });
+    auto result = dest->select("SELECT * FROM users");
+    auto id_rows = std::vector{ db_type{}, db_type{1LL}, db_type{} };
+
+    EXPECT_EQ(result, data);
+    EXPECT_EQ(data["id"], id_rows);
+}
 
 TEST(filter, filter_basic) {
     db_data in{
@@ -190,14 +211,14 @@ TEST(filter, filter_basic) {
         {"name", {"1", "2", "3", "4", "5"}}
     };
     std::println("ok");
-    filter(in, "id", [](db_value& value) {
+    filter(in, "id", [](db_type& value) {
         int id = std::get<int>(value);
         return id <= 3 ? true : false;
     });
     std::println("2");
-    std::vector<db_value> out_id = { 1, 2, 3 };
+    std::vector<db_type> out_id = { 1, 2, 3 };
     std::println("3");
-    std::vector<db_value> out_name = { "1", "2", "3" };
+    std::vector<db_type> out_name = { "1", "2", "3" };
     std::println("4");
     EXPECT_EQ(in["id"], out_id);
     EXPECT_EQ(in["name"], out_name);
@@ -207,7 +228,7 @@ TEST(filter, filter_empty) {
     db_data in{};
     db_data out{};
     std::println("ok");
-    filter(in, "id", [](db_value& value) {
+    filter(in, "id", [](db_type& value) {
         int id = std::get<int>(value);
         return id <= 3 ? true : false;
     });
@@ -216,9 +237,9 @@ TEST(filter, filter_empty) {
 
 TEST_F(db_type_test, mappings) {
     auto r = src->select_one("SELECT CAST(123 as INTEGER)");
-    EXPECT_EQ(r, db_value{123ll});
+    EXPECT_EQ(r, db_type{123ll});
     r = src->select_one("SELECT CAST(\"123\" as VARCHAR)");
-    EXPECT_EQ(r, db_value{"123"});
+    EXPECT_EQ(r, db_type{"123"});
     r = src->select_one("SELECT CAST(\"123\" as NVARCHAR)");
-    EXPECT_EQ(r, db_value{"123"});
+    EXPECT_EQ(r, db_type{"123"});
 }
