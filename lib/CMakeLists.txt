@@ -21,6 +21,7 @@ message(STATUS "Boost::headers includes: ${BOOST_INC}")
 target_include_directories(db2db PRIVATE ${Boost_INCLUDE_DIRS})
 
 target_link_libraries(db2db PUBLIC nanodbc spdlog::spdlog Boost::container)
+
 if(ENABLE_COVERAGE)
 	target_compile_options(
 		db2db
@@ -33,10 +34,10 @@ add_custom_command(
 	TARGET db2db
 	POST_BUILD
 	COMMAND
-		${CMAKE_COMMAND} -E copy_if_different
-		$<TARGET_FILE:spdlog::spdlog>
-		$<TARGET_FILE:nanodbc>
-		$<TARGET_FILE_DIR:db2db>
+	${CMAKE_COMMAND} -E copy_if_different
+	$<TARGET_FILE:spdlog::spdlog>
+	$<TARGET_FILE:nanodbc>
+	$<TARGET_FILE_DIR:db2db>
 )
 
 add_executable(db2db_test "tests/sqlite_test.cpp")
@@ -53,10 +54,12 @@ if(ENABLE_COVERAGE)
 		db2db_test
 		PRIVATE -fprofile-instr-generate -fcoverage-mapping
 	)
+
 	if(NOT LLVM_COV)
 		unset(LLVM_COV CACHE)
 		find_program(LLVM_COV llvm-cov REQUIRED)
 	endif()
+
 	if(NOT LLVM_PROFDATA)
 		unset(LLVM_PROFDATA CACHE)
 		find_program(LLVM_PROFDATA llvm-profdata REQUIRED)
@@ -64,8 +67,7 @@ if(ENABLE_COVERAGE)
 
 	set(PROFRAW_DIR $<TARGET_FILE_DIR:db2db_test>/profraw)
 
-	#file(MAKE_DIRECTORY ${PROFRAW_DIR})
-
+	# file(MAKE_DIRECTORY ${PROFRAW_DIR})
 	add_custom_target(
 		remove-coverage
 		COMMAND ${CMAKE_COMMAND} -E rm -rf ${PROFRAW_DIR}
@@ -74,14 +76,14 @@ if(ENABLE_COVERAGE)
 	add_custom_target(
 		coverage
 		COMMAND
-			${LLVM_PROFDATA} merge -sparse ${PROFRAW_DIR}/*.profraw -o
-			$<TARGET_FILE_DIR:db2db_test>/coverage.profdata
+		${LLVM_PROFDATA} merge -sparse ${PROFRAW_DIR}/*.profraw -o
+		$<TARGET_FILE_DIR:db2db_test>/coverage.profdata
 		COMMAND
-			${LLVM_COV} export $<TARGET_FILE:db2db_test>
-			-instr-profile=$<TARGET_FILE_DIR:db2db_test>/coverage.profdata -format=lcov
-			--Xdemangler=llvm-cxxfilt
-			-ignore-filename-regex=".*deps.*|.*Program Files.*|.*tests.*" >
-			${CMAKE_SOURCE_DIR}/report.info
+		${LLVM_COV} export $<TARGET_FILE:db2db_test>
+		-instr-profile=$<TARGET_FILE_DIR:db2db_test>/coverage.profdata -format=lcov
+		--Xdemangler=llvm-cxxfilt
+		-ignore-filename-regex=".*deps.*|.*Program Files.*|.*tests.*" >
+		${CMAKE_SOURCE_DIR}/report.info
 		DEPENDS db2db_test
 		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 		COMMENT "Generating coverage.info"
@@ -92,22 +94,24 @@ add_custom_command(
 	TARGET db2db_test
 	POST_BUILD
 	COMMAND
-		${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:spdlog::spdlog>
-		$<TARGET_FILE_DIR:db2db_test>
+	${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:spdlog::spdlog>
+	$<TARGET_FILE_DIR:db2db_test>
 )
+
 if(NOT ENABLE_COVERAGE)
 	add_custom_command(
 		TARGET db2db_test
 		POST_BUILD
 		COMMAND
-			${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:db2db>
-			$<TARGET_FILE_DIR:db2db_test>
+		${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:db2db>
+		$<TARGET_FILE_DIR:db2db_test>
 	)
 endif()
+
 add_custom_command(
 	TARGET db2db_test
 	POST_BUILD
 	COMMAND
-		${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:GTest::gtest>
-		$<TARGET_FILE:GTest::gtest_main> $<TARGET_FILE_DIR:db2db_test>
+	${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:GTest::gtest>
+	$<TARGET_FILE:GTest::gtest_main> $<TARGET_FILE_DIR:db2db_test>
 )

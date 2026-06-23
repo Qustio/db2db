@@ -1,72 +1,74 @@
 #include "source.h"
 
-#include <any>
+#include "nanodbc/nanodbc.h"
+#include "nanodbc_optional.cpp"
+#include <boost/container/vector.hpp>
 #include <cstdint>
+#include <format>
 #include <fstream>
 #include <ranges>
+#include <spdlog/spdlog.h>
 #include <sqlext.h>
 #include <stdexcept>
 #include <type_traits>
 #include <variant>
-#include <format>
-#include <boost/container/vector.hpp>
-#include <spdlog/spdlog.h>
-#include "nanodbc/nanodbc.h"
-#include "nanodbc_optional.cpp"
-
 
 namespace {
-	void bind(
-		nanodbc::statement& s,
-		short index,
-		const db_type& value
-	) {
-		std::visit([&](const auto& v) {
-			if constexpr (std::is_same_v<std::decay_t<decltype(v)>, std::monostate>) {
-				s.bind_null(index);
-			} else if constexpr (std::is_same_v<std::decay_t<decltype(v)>, std::string>) {
-				s.bind(index, v.data());
-			} else {
-				s.bind(index, &v);
-			}
-		}, value);
+	void bind(nanodbc::statement &s, short index, const db_type &value) {
+		std::visit(
+			[&](const auto &v) -> auto {
+				if constexpr (std::is_same_v<std::decay_t<decltype(v)>, std::monostate>)
+					s.bind_null(index);
+				else if constexpr (std::is_same_v<std::decay_t<decltype(v)>, std::string>)
+					s.bind(index, v.data());
+				else
+					s.bind(index, &v);
+			},
+			value
+		);
 	}
 
-	size_t row_count(const db_data& data) {
-		return std::visit([](const auto& col) {
-			return col.data.size();
-		}, data.begin()->second.data);
+	auto row_count(const db_data &data) -> size_t {
+		return std::visit(
+			[](const auto &col) -> auto { return col.data.size(); },
+			data.begin()->second.data
+		);
 	}
 
-	std::vector<std::any> bind(
-		nanodbc::statement& s,
-		const db_data& data,
+	auto bind(
+		nanodbc::statement &s,
+		const db_data &data,
 		std::span<const nanodbc::string> columns
 	) {
-		std::vector<std::any> storage;
-		storage.reserve(columns.size()*2);
 		short index = 0;
-		for (const auto& column_name : columns) {
+		for (const auto &column_name : columns) {
 			auto it = data.find(column_name);
 			if (it == data.end())
 				throw std::runtime_error(std::format("No column named \"{}\"", column_name));
-			const auto& column = it->second;
+			const auto &column = it->second;
 			auto count = row_count(data);
 
-			std::visit([&](const auto& c) {
-				using T = std::decay_t<decltype(c)>;
-				if constexpr (std::is_same_v<typename T::type, nanodbc::string>) {
-					s.bind_strings(index, c.data, reinterpret_cast<const bool*>(c.nulls.data()));
-				} else {
-					s.bind(index, c.data.data(), count, reinterpret_cast<const bool*>(c.nulls.data()));
-				}
-			}, column.data);
+			std::visit(
+				[&](const auto &c) {
+					using T = std::decay_t<decltype(c)>;
+					if constexpr (std::is_same_v<typename T::type, nanodbc::string>)
+						s.bind_strings(
+							index, c.data,
+							reinterpret_cast<const bool *>(c.nulls.data())
+						);
+					else
+						s.bind(
+							index, c.data.data(), count,
+							reinterpret_cast<const bool *>(c.nulls.data())
+						);
+				},
+				column.data
+			);
 			index++;
 		}
-		return storage;
 	}
 
-	db_type get(nanodbc::result& r, short col) {
+	auto get(nanodbc::result &r, short col) -> db_type {
 		if (r.is_null(col))
 			return std::monostate{};
 		switch (r.column_c_datatype(col)) {
@@ -98,10 +100,12 @@ namespace {
 			case SQL_C_TIMESTAMP:
 				return r.get<nanodbc::timestamp>(col);
 		}
-		throw std::runtime_error(std::format("Type \"{}\" is missing is mapping", r.column_c_datatype(col)));
+		throw std::runtime_error(
+			std::format("Type \"{}\" is missing is mapping", r.column_c_datatype(col))
+		);
 	}
 
-	db_column_ make_column_storage(int c_type) {
+	auto make_column_storage(int c_type) -> db_column_ {
 		switch (c_type) {
 			case SQL_C_CHAR:
 			case SQL_C_WCHAR:
@@ -132,29 +136,28 @@ namespace {
 				return typed_column_<nanodbc::string>{};
 		}
 	}
-}
+} // namespace
 
-bool operator==(const db_data &lhs, const db_data &rhs) {
-  if (lhs.size() != rhs.size())
-    return false;
+auto operator==(const db_data &lhs, const db_data &rhs) -> bool {
+	if (lhs.size() != rhs.size())
+		return false;
 
-  for (const auto &[key, col] : lhs) {
-    auto it = rhs.find(key);
-    if (it == rhs.end())
-      return false;
+	for (const auto &[key, col] : lhs) {
+		auto it = rhs.find(key);
+		if (it == rhs.end())
+			return false;
 
-    auto &dd = col;
-    auto &ddd = it->second;
-    // reuse db_column::operator== via span
-    if (!(col == it->second))
-      return false;
-  }
-  return true;
+		auto &dd = col;
+		auto &ddd = it->second;
+		// reuse db_column::operator== via span
+		if (!(col == it->second))
+			return false;
+	}
+	return true;
 }
 
 void filter(
-	db_data &data, nanodbc::string column,
-	std::function<bool(db_type &)> fn
+	db_data &data, nanodbc::string column, std::function<bool(db_type &)> fn
 ) {
 	if (data.empty())
 		return;
@@ -162,27 +165,29 @@ void filter(
 	std::vector<int> to_delete{};
 	std::visit(
 		[&](auto &values) {
-		// using T = typename std::decay_t<decltype(values)>::type;
-		for (size_t i = 0; i < values.data.size(); i++) {
-			db_type element = values.data[i];
-			if (!fn(element))
-			to_delete.push_back(i);
-		}
+			// using T = typename std::decay_t<decltype(values)>::type;
+			for (size_t i = 0; i < values.data.size(); i++) {
+				db_type element = values.data[i];
+				if (!fn(element))
+					to_delete.push_back(i);
+			}
 		},
-		values.data);
+		values.data
+	);
 	size_t offset = 0;
-	for (auto& [key, col_values] : data) {
-		std::visit([&to_delete](auto& data) {
-			for (size_t i : to_delete)
-				data.nulls[i] = 1;
-		}, col_values.data);
+	for (auto &[key, col_values] : data) {
+		std::visit(
+			[&to_delete](auto &data) {
+				for (size_t i : to_delete)
+					data.nulls[i] = 1;
+			},
+			col_values.data
+		);
 	}
 }
 
-source::source(const nanodbc::string& connection_string)
-: _connection(connection_string) {
-	
-};
+source::source(const nanodbc::string &connection_string)
+	: _connection(connection_string) {};
 
 source source::from_file(std::filesystem::path filename) {
 	std::wifstream file(filename);
@@ -194,38 +199,34 @@ source source::from_file(std::filesystem::path filename) {
 		cs.pop_back();
 	if (cs.empty())
 		throw std::runtime_error("connection string is empty");
-	//spdlog::info("{}", std::string(cs.begin(), cs.end()));
 	return {nanodbc::string(cs.begin(), cs.end())};
 }
 
-db_data source::select	(
-	const nanodbc::string& query,
-	std::span<const db_type> params
-) {
+auto source::select(const nanodbc::string &query, std::span<const db_type> params) -> db_data {
 	db_data data{};
-	auto s = nanodbc::statement(
-		_connection,
-		query
-	);
-	for (const auto& [i, param] : std::views::enumerate(params)) {
+	auto s = nanodbc::statement(_connection, query);
+	for (const auto &[i, param] : std::views::enumerate(params)) {
 		::bind(s, i, param);
 	}
 	auto result = s.execute();
 	for (int i = 0; i < result.columns(); i++) {
-		data[result.column_name(i)].data = make_column_storage(result.column_c_datatype(i));
+		data[result.column_name(i)].data =
+			make_column_storage(result.column_c_datatype(i));
 	}
 	while (result.next()) {
 		for (short i = 0; i < result.columns(); i++) {
 			try {
 				auto value = ::get(result, i);
-				std::visit([&value](auto& column) {
-					using T = typename std::decay_t<decltype(column)>::type;
-					auto* val = std::get_if<T>(&value);
-					column.nulls.push_back(val ? 0 : 1);
-					column.data.push_back(val ? std::move(*val) : T{});
-				}, data[result.column_name(i)].data);
-			}
-			catch (const std::runtime_error& e) {
+				std::visit(
+					[&value](auto &column) {
+						using T = typename std::decay_t<decltype(column)>::type;
+						auto *val = std::get_if<T>(&value);
+						column.nulls.push_back(val ? 0 : 1);
+						column.data.push_back(val ? std::move(*val) : T{});
+					},
+					data[result.column_name(i)].data
+				);
+			} catch (const std::runtime_error &e) {
 				spdlog::error("{}", e.what());
 			}
 		}
@@ -233,16 +234,17 @@ db_data source::select	(
 	return data;
 }
 
-db_type source::select_one(
-	const nanodbc::string& query,
-	std::span<const db_type> params
-) {
+auto source::select(const nanodbc::string &query, std::initializer_list<db_type> columns) -> db_data {
+	return select(query, std::span{columns.begin(), columns.end()});
+}
+
+auto source::select_one(const nanodbc::string &query, std::initializer_list<db_type> params) -> db_type {
+	return select_one(query, std::span{params.begin(), params.end()});
+}
+auto source::select_one(const nanodbc::string &query, std::span<const db_type> params) -> db_type {
 	db_data data{};
-	auto s = nanodbc::statement(
-		_connection,
-		query
-	);
-	for (const auto& [i, param] : std::views::enumerate(params)) {
+	auto s = nanodbc::statement(_connection, query);
+	for (const auto &[i, param] : std::views::enumerate(params)) {
 		::bind(s, i, param);
 	}
 	auto result = s.execute();
@@ -251,20 +253,14 @@ db_type source::select_one(
 	}
 	if (!result.is_null(0)) {
 		return get(result, 0);
-		//return result.get<nanodbc::string>(0);
+		// return result.get<nanodbc::string>(0);
 	}
 	return db_type{};
 }
 
-void source::exec(
-	const nanodbc::string& query,
-	std::span<const db_type> params
-) {
-	auto s = nanodbc::statement(
-		_connection,
-		query
-	);
-	for (const auto& [i, param] : std::views::enumerate(params)) {
+void source::exec(const nanodbc::string &query, std::span<const db_type> params) {
+	auto s = nanodbc::statement(_connection, query);
+	for (const auto &[i, param] : std::views::enumerate(params)) {
 		::bind(s, i, param);
 	}
 	auto result = s.execute();
@@ -272,18 +268,87 @@ void source::exec(
 }
 
 void source::insert(
-	const nanodbc::string& query,
-	const db_data& data,
+	const nanodbc::string &query,
+	const db_data &data,
 	std::span<const nanodbc::string> columns
 ) {
 	auto count = row_count(data);
 	if (count == 0)
 		return;
 	nanodbc::statement insert_statement(_connection, query);
-	auto a = ::bind(insert_statement, data, columns);
+	::bind(insert_statement, data, columns);
 	nanodbc::transact(insert_statement, count);
 }
 
-source::~source() {
-	
+void source::insert(
+	const nanodbc::string &query,
+	const db_data &data,
+	std::initializer_list<nanodbc::string> columns
+) {
+	insert(query, data, std::span{columns.begin(), columns.end()});
+}
+
+source::~source() = default;
+
+db_column::db_column(std::initializer_list<const char *> init) {
+	typed_column_<nanodbc::string> col;
+	for (const char *s : init)
+		col.data.emplace_back(s);
+	col.nulls.assign(init.size(), 0);
+	data = std::move(col);
+}
+
+auto db_column::operator[](size_t i) const -> db_type {
+	return std::visit(
+		[i](const auto &data) -> db_type { return data.data[i]; }, data
+	);
+}
+
+auto db_column::operator==(const db_column &other) const -> bool {
+	return data == other.data;
+}
+
+auto db_column::operator==(std::span<const db_type> other) const -> bool {
+	return std::visit(
+		[&](const auto &col) -> bool {
+			using T = typename std::decay_t<decltype(col)>::type;
+			return std::ranges::all_of(
+				std::views::zip_transform(
+					[](const T &data, const auto &nulls,
+					   const auto &other) -> bool {
+						if (nulls)
+							return std::holds_alternative<std::monostate>(
+								other
+							);
+						const auto *val = std::get_if<T>(&other);
+						return val && *val == data;
+					},
+					col.data, col.nulls, other
+				),
+				std::identity{}
+			);
+			return true;
+		},
+		data
+	);
+}
+
+[[nodiscard]]
+auto db_column::size() const -> size_t {
+	return std::visit(
+		[](const auto &data) -> size_t { return data.data.size(); }, data
+	);
+}
+
+auto nanodbc::operator==(const nanodbc::date &a, const nanodbc::date &b) -> bool {
+	return a.year == b.year && a.month == b.month && a.day == b.day;
+}
+
+auto nanodbc::operator==(const nanodbc::time &a, const nanodbc::time &b) -> bool {
+	return a.hour == b.hour && a.sec == b.sec && a.min == b.min;
+}
+
+auto nanodbc::operator==(const nanodbc::timestamp &a, const nanodbc::timestamp &b) -> bool {
+	return a.year == b.year && a.month == b.month && a.day == b.day &&
+		   a.hour == b.hour && a.sec == b.sec && a.min == b.min;
 }

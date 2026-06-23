@@ -84,12 +84,16 @@
 		{
 			"name": "release",
 			"configurePreset": "release",
-			"generators": ["ZIP"]
+			"generators": [
+				"ZIP"
+			]
 		},
 		{
 			"name": "srelease",
 			"configurePreset": "srelease",
-			"generators": ["ZIP"]
+			"generators": [
+				"ZIP"
+			]
 		}
 	]
 }

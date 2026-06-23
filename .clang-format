@@ -1,0 +1,21 @@
+IndentWidth: 4
+TabWidth: 4
+UseTab: Always
+ColumnLimit: 0
+BreakBeforeBraces: Custom
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+IndentAccessModifiers: false
+AccessModifierOffset: -4
+BraceWrapping:
+  AfterFunction: false
+  AfterNamespace: false
+  AfterClass: false
+  AfterStruct: false
+  AfterEnum: false
+  AfterControlStatement: Never
+  BeforeElse: false
+IndentCaseLabels: true
+NamespaceIndentation: All
+AlignAfterOpenBracket: BlockIndent   # puts ) on its own line
+BinPackParameters: false              # all params together, not packed
+AllowShortLambdasOnASingleLine: All 

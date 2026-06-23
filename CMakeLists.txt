@@ -18,6 +18,7 @@ include(FetchContent)
 include(CTest)
 
 find_package(Boost 1.91 CONFIG COMPONENTS headers program_options container)
+
 if(NOT Boost_FOUND)
 	message(STATUS "Boost not found")
 	set(BOOST_INCLUDE_LIBRARIES headers program_options container)
@@ -32,10 +33,11 @@ if(NOT Boost_FOUND)
 endif()
 
 find_package(pybind11 CONFIG)
+
 if(NOT pybind11_FOUND)
 	FetchContent_Declare(
 		pybind11
-		GIT_REPOSITORY  https://github.com/pybind/pybind11
+		GIT_REPOSITORY https://github.com/pybind/pybind11
 		GIT_TAG v3.0.4
 	)
 	FetchContent_MakeAvailable(pybind11)
@@ -43,9 +45,10 @@ endif()
 
 find_package(ODBC REQUIRED)
 find_package(nanodbc CONFIG)
+
 if(NOT nanodbc_FOUND)
 	FetchContent_Declare(
-		nanodbc 
+		nanodbc
 		GIT_REPOSITORY https://github.com/nanodbc/nanodbc
 		GIT_TAG fd9b4f551b0f03780168c4b2ba880dcb5777aad4
 	)
@@ -53,6 +56,7 @@ if(NOT nanodbc_FOUND)
 endif()
 
 find_package(spdlog CONFIG)
+
 if(NOT spdlog_FOUND)
 	FetchContent_Declare(
 		spdlog
@@ -63,6 +67,7 @@ if(NOT spdlog_FOUND)
 endif()
 
 find_package(GTest CONFIG)
+
 if(NOT GTest_FOUND)
 	FetchContent_Declare(
 		GTest
@@ -73,6 +78,7 @@ if(NOT GTest_FOUND)
 endif()
 
 find_package(tomlplusplus CONFIG)
+
 if(NOT tomlplusplus_FOUND)
 	FetchContent_Declare(
 		tomlplusplus
@@ -83,7 +89,8 @@ if(NOT tomlplusplus_FOUND)
 endif()
 
 add_subdirectory("lib")
-#add_subdirectory ("python_module")
+
+# add_subdirectory ("python_module")
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/cli/CMakeLists.txt")
 	add_subdirectory("cli")
 endif()
