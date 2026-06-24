@@ -11,8 +11,7 @@ void __llvm_profile_set_filename(const char *name);
 void __llvm_profile_reset_counters(void);
 }
 
-class CoverageListener : public ::testing::EmptyTestEventListener
-{
+class CoverageListener : public ::testing::EmptyTestEventListener {
 	void OnTestStart(const ::testing::TestInfo &) override {
 		__llvm_profile_reset_counters();
 	}
@@ -25,8 +24,7 @@ class CoverageListener : public ::testing::EmptyTestEventListener
 	}
 };
 
-namespace
-{
+namespace {
 	const int register_listener = [] {
 		::testing::UnitTest::GetInstance()->listeners().Append(
 			new CoverageListener
@@ -36,15 +34,13 @@ namespace
 } // namespace
 #endif // ENABLE_COVERAGE
 
-class test_source : public source
-{
-  public:
+class test_source : public source {
+public:
 	nanodbc::connection &connection() { return _connection; }
 };
 
-class SqliteFixture : public ::testing::Test
-{
-  protected:
+class SqliteFixture : public ::testing::Test {
+protected:
 	void SetUp() override {
 #ifdef _WIN32
 		conn_str = "Driver=SQLite3 ODBC Driver;Database=:memory:;";
@@ -77,18 +73,16 @@ class SqliteFixture : public ::testing::Test
 	std::unique_ptr<test_source> dest;
 };
 
-class SelectTest : public SqliteFixture
-{
-  protected:
+class SelectTest : public SqliteFixture {
+protected:
 	void SetUp() override {
 		SqliteFixture::SetUp();
 		exec("CREATE TABLE users (id INTEGER, name TEXT, score REAL)");
 	}
 };
 
-class SyncTest : public SqliteFixture
-{
-  protected:
+class SyncTest : public SqliteFixture {
+protected:
 	void SetUp() override {
 		SqliteFixture::SetUp();
 		exec_src("CREATE TABLE users (id INTEGER, name TEXT, score REAL)");
@@ -97,9 +91,8 @@ class SyncTest : public SqliteFixture
 	}
 };
 
-class SyncTestNulls : public SqliteFixture
-{
-  protected:
+class SyncTestNulls : public SqliteFixture {
+protected:
 	void SetUp() override {
 		SqliteFixture::SetUp();
 		exec_src("CREATE TABLE users (id INTEGER, name TEXT, score REAL)");
@@ -109,8 +102,7 @@ class SyncTestNulls : public SqliteFixture
 	}
 };
 
-class db_type_test : public SqliteFixture
-{
+class db_type_test : public SqliteFixture {
 };
 
 TEST(setupTest, includeTest) {
@@ -257,4 +249,31 @@ TEST_F(db_type_test, mappings) {
 	EXPECT_EQ(r, db_type{"123"});
 	r = src->select_one("SELECT CAST(\"123\" as NVARCHAR)");
 	EXPECT_EQ(r, db_type{"123"});
+}
+
+TEST(db_data_size, scalesWithData) {
+	db_data small_data{
+		{"id", {1, 2}},
+		{"name", {"123", "0"}},
+	};
+	db_data large_data{
+		{"id", {1, 2, 3}},
+		{"name", {"123", "0", ""}},
+	};
+	EXPECT_LT(db_data_size(small_data), db_data_size(large_data));
+}
+
+TEST(db_data_size, emptyIsZeroOrNear) {
+	db_data empty{};
+	EXPECT_EQ(db_data_size(empty), 0);
+}
+
+TEST(db_data_size, knownLayout) {
+	db_data data{
+		{"id", {1, 2, 3}},
+		{"name", {"123", "0", ""}},
+	};
+
+	size_t size = db_data_size(data);
+	EXPECT_EQ(size, 0);
 }

@@ -114,6 +114,9 @@ struct db_column {
 	auto operator==(std::span<const db_type> other) const -> bool;
 
 	[[nodiscard]]
+	auto capacity() const -> size_t;
+
+	[[nodiscard]]
 	auto size() const -> size_t;
 };
 
@@ -124,6 +127,8 @@ using db_data = std::unordered_map<
 	case_insensitive_equal>;
 
 auto operator==(const db_data &lhs, const db_data &rhs) -> bool;
+
+auto db_data_size(const db_data &v) -> size_t;
 
 void filter(
 	db_data &data, nanodbc::string column, std::function<bool(db_type &)> fn

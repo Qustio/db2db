@@ -156,6 +156,16 @@ auto operator==(const db_data &lhs, const db_data &rhs) -> bool {
 	return true;
 }
 
+auto db_data_size(const db_data &v) -> size_t {
+	size_t bytes = sizeof(v);
+	bytes += v.bucket_count() * sizeof(void *);
+	for (const auto &[key, vec] : v) {
+		bytes += sizeof(key) + key.capacity() * sizeof(decltype(key)::value_type);
+		bytes += vec.capacity();
+	}
+	return bytes;
+}
+
 void filter(
 	db_data &data, nanodbc::string column, std::function<bool(db_type &)> fn
 ) {
@@ -328,6 +338,25 @@ auto db_column::operator==(std::span<const db_type> other) const -> bool {
 				std::identity{}
 			);
 			return true;
+		},
+		data
+	);
+}
+
+[[nodiscard]]
+auto db_column::capacity() const -> size_t {
+	return std::visit(
+		[](const auto &col) -> size_t {
+			using T = typename std::decay_t<decltype(col)>::type;
+			auto data_size = col.data.size() + col.data.capacity() * sizeof(T);
+			auto nulls_size = col.nulls.size() + col.nulls.capacity() * sizeof(unsigned char);
+			// if T is string then add string capacity bytes
+			if constexpr (std::is_same_v<T, nanodbc::string>) {
+				for (const auto &val : col.data) {
+					data_size += val.capacity() * sizeof(nanodbc::string::value_type);
+				}
+			}
+			return data_size + nulls_size;
 		},
 		data
 	);
