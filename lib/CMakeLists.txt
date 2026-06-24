@@ -46,6 +46,7 @@ target_link_libraries(db2db_test PRIVATE GTest::gtest_main db2db)
 gtest_discover_tests(db2db_test)
 
 if(ENABLE_COVERAGE)
+	target_compile_definitions(db2db_test PRIVATE ENABLE_COVERAGE)
 	target_compile_options(
 		db2db_test
 		PRIVATE -fprofile-instr-generate -fcoverage-mapping
