@@ -6,6 +6,7 @@
 			"hidden": true,
 			"generator": "Ninja",
 			"binaryDir": "${sourceDir}/out/${presetName}",
+			"installDir": "${sourceDir}/out/${presetName}/install",
 			"architecture": {
 				"value": "x64",
 				"strategy": "external"
@@ -22,7 +23,6 @@
 			"name": "release",
 			"displayName": "x64 Release",
 			"inherits": "base",
-			"installDir": "${sourceDir}/publish",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Release",
 				"CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -g",
@@ -33,7 +33,6 @@
 			"name": "srelease",
 			"displayName": "x64 SRelease",
 			"inherits": "base",
-			"installDir": "${sourceDir}/publish",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Release",
 				"CMAKE_CXX_FLAGS_RELEASE": "-Os",
@@ -41,10 +40,9 @@
 			}
 		},
 		{
-			"name": "dev",
-			"displayName": "dev clang",
-			"description": "dev build with coverage",
-			"binaryDir": "${sourceDir}/build",
+			"name": "debug",
+			"displayName": "x64 Debug",
+			"description": "x64 Debug build with coverage",
 			"inherits": "base",
 			"cacheVariables": {
 				"ENABLE_COVERAGE": "ON",
@@ -62,8 +60,8 @@
 			"configurePreset": "srelease"
 		},
 		{
-			"name": "dev",
-			"configurePreset": "dev"
+			"name": "debug",
+			"configurePreset": "debug"
 		}
 	],
 	"testPresets": [
@@ -76,8 +74,8 @@
 			"configurePreset": "srelease"
 		},
 		{
-			"name": "dev",
-			"configurePreset": "dev"
+			"name": "debug",
+			"configurePreset": "debug"
 		}
 	],
 	"packagePresets": [
