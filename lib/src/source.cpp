@@ -51,16 +51,24 @@ namespace {
 			std::visit(
 				[&](const auto &c) {
 					using T = std::decay_t<decltype(c)>;
-					if constexpr (std::is_same_v<typename T::type, nanodbc::string>)
+					std::string col_name(column_name.begin(), column_name.end());
+					if constexpr (std::is_same_v<typename T::type, nanodbc::string>) {
+						size_t max_len = 0;
+						for (const auto &str : c.data)
+							max_len = (std::max)(max_len, str.size());
+						size_t alloc = max_len * count * sizeof(nanodbc::string::value_type);
+						spdlog::info("bind [{}]: {} strings, max_len={}, ~{} MB", col_name, count, max_len, alloc / (1024 * 1024));
 						s.bind_strings(
 							index, c.data,
 							reinterpret_cast<const bool *>(c.nulls.data())
 						);
-					else
+					} else {
+						spdlog::info("bind [{}]: {} x {} bytes", col_name, count, sizeof(typename T::type));
 						s.bind(
 							index, c.data.data(), count,
 							reinterpret_cast<const bool *>(c.nulls.data())
 						);
+					}
 				},
 				column.data
 			);
