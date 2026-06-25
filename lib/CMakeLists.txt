@@ -20,7 +20,7 @@ message(STATUS "Boost include dirs: ${Boost_INCLUDE_DIRS}")
 message(STATUS "Boost::headers includes: ${BOOST_INC}")
 target_include_directories(db2db PRIVATE ${Boost_INCLUDE_DIRS})
 
-target_link_libraries(db2db PUBLIC nanodbc spdlog::spdlog Boost::container)
+target_link_libraries(db2db PUBLIC nanodbc Boost::container)
 
 if(ENABLE_COVERAGE)
 	target_compile_options(
@@ -35,7 +35,6 @@ add_custom_command(
 	POST_BUILD
 	COMMAND
 	${CMAKE_COMMAND} -E copy_if_different
-	$<TARGET_FILE:spdlog::spdlog>
 	$<TARGET_FILE:nanodbc>
 	$<TARGET_FILE_DIR:db2db>
 )
@@ -90,14 +89,6 @@ if(ENABLE_COVERAGE)
 		COMMENT "Generating coverage.info"
 	)
 endif()
-
-add_custom_command(
-	TARGET db2db_test
-	POST_BUILD
-	COMMAND
-	${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:spdlog::spdlog>
-	$<TARGET_FILE_DIR:db2db_test>
-)
 
 if(NOT ENABLE_COVERAGE)
 	add_custom_command(

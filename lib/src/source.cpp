@@ -8,13 +8,13 @@
 #include <format>
 #include <fstream>
 #include <ranges>
-#include <spdlog/spdlog.h>
 #include <sqlext.h>
 #include <stdexcept>
 #include <type_traits>
 #include <variant>
 
 namespace {
+	log_fn g_logger;
 	void bind(nanodbc::statement &s, short index, const db_type &value) {
 		std::visit(
 			[&](const auto &v) -> auto {
@@ -66,13 +66,13 @@ namespace {
 						for (const auto &str : chunk)
 							max_len = (std::max)(max_len, str.size());
 						size_t alloc = max_len * count * sizeof(nanodbc::string::value_type);
-						spdlog::info("bind [{}]: {} strings, max_len={}, ~{} MB", col_name, count, max_len, alloc / (1024 * 1024));
+						if (g_logger) g_logger(log_level::debug, std::format("bind [{}]: {} strings, max_len={}, ~{} MB", col_name, count, max_len, alloc / (1024 * 1024)));
 						s.bind_strings(
 							index, chunk,
 							reinterpret_cast<const bool *>(c.nulls.data() + offset)
 						);
 					} else {
-						spdlog::info("bind [{}]: {} x {} bytes", col_name, count, sizeof(typename T::type));
+						if (g_logger) g_logger(log_level::debug, std::format("bind [{}]: {} x {} bytes", col_name, count, sizeof(typename T::type)));
 						s.bind(
 							index, c.data.data() + offset, count,
 							reinterpret_cast<const bool *>(c.nulls.data() + offset)
@@ -154,6 +154,10 @@ namespace {
 		}
 	}
 } // namespace
+
+void set_logger(log_fn fn) {
+	g_logger = std::move(fn);
+}
 
 auto operator==(const db_data &lhs, const db_data &rhs) -> bool {
 	if (lhs.size() != rhs.size())
@@ -254,7 +258,7 @@ auto source::select(const nanodbc::string &query, std::span<const db_type> param
 					data[result.column_name(i)].data
 				);
 			} catch (const std::runtime_error &e) {
-				spdlog::error("{}", e.what());
+				if (g_logger) g_logger(log_level::error, e.what());
 			}
 		}
 	}

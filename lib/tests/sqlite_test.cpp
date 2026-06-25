@@ -52,6 +52,9 @@ protected:
 #endif
 		src = std::make_unique<test_source>(conn_str);
 		dest = std::make_unique<test_source>(conn_str2);
+		set_logger([](log_level lvl, std::string_view msg) {
+			std::cout << msg << std::endl;
+		});
 	}
 
 	inline void exec(const nanodbc::string &sql) { exec_src(sql); }

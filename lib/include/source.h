@@ -5,6 +5,7 @@
 #include <initializer_list>
 #include <nanodbc/nanodbc.h>
 #include <span>
+#include <string_view>
 #include <type_traits>
 #include <variant>
 #include <vector>
@@ -14,6 +15,11 @@
 #include <Windows.h>
 #endif
 #include <sqlext.h>
+
+
+enum class log_level { trace, debug, info, warn, error };
+using log_fn = std::function<void(log_level, std::string_view)>;
+void set_logger(log_fn fn);
 
 namespace nanodbc {
 	auto operator==(const nanodbc::date &a, const nanodbc::date &b) -> bool;
@@ -143,6 +149,7 @@ concept DbBindable = requires(nanodbc::statement &stmt, const T &val, short i) {
 
 class source {
 public:
+	
 	source(const nanodbc::string &connection_string);
 	static auto from_file(std::filesystem::path filename) -> source;
 	auto select(const nanodbc::string &query, std::span<const db_type> params = {}) -> db_data;
