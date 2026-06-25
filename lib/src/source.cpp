@@ -3,6 +3,7 @@
 #include "nanodbc/nanodbc.h"
 #include "nanodbc_optional.cpp"
 #include <boost/container/vector.hpp>
+#include <cstddef>
 #include <cstdint>
 #include <format>
 #include <fstream>
@@ -38,7 +39,9 @@ namespace {
 	auto bind(
 		nanodbc::statement &s,
 		const db_data &data,
-		std::span<const nanodbc::string> columns
+		std::span<const nanodbc::string> columns,
+		size_t offset = 0,
+		size_t chunk_size = 0
 	) {
 		short index = 0;
 		for (const auto &column_name : columns) {
@@ -46,27 +49,33 @@ namespace {
 			if (it == data.end())
 				throw std::runtime_error(std::format("No column named \"{}\"", column_name));
 			const auto &column = it->second;
-			auto count = row_count(data);
+			auto total = row_count(data);
+			auto count = (chunk_size == 0) ? total - offset : chunk_size;
 
 			std::visit(
 				[&](const auto &c) {
 					using T = std::decay_t<decltype(c)>;
 					std::string col_name(column_name.begin(), column_name.end());
 					if constexpr (std::is_same_v<typename T::type, nanodbc::string>) {
+						// bind_strings scans the whole vector for max_len, so pass only the chunk
+						// to avoid max_len * total_rows allocation instead of max_len * chunk_size
+						std::vector<nanodbc::string> chunk(
+							c.data.begin() + offset, c.data.begin() + offset + count
+						);
 						size_t max_len = 0;
-						for (const auto &str : c.data)
+						for (const auto &str : chunk)
 							max_len = (std::max)(max_len, str.size());
 						size_t alloc = max_len * count * sizeof(nanodbc::string::value_type);
 						spdlog::info("bind [{}]: {} strings, max_len={}, ~{} MB", col_name, count, max_len, alloc / (1024 * 1024));
 						s.bind_strings(
-							index, c.data,
-							reinterpret_cast<const bool *>(c.nulls.data())
+							index, chunk,
+							reinterpret_cast<const bool *>(c.nulls.data() + offset)
 						);
 					} else {
 						spdlog::info("bind [{}]: {} x {} bytes", col_name, count, sizeof(typename T::type));
 						s.bind(
-							index, c.data.data(), count,
-							reinterpret_cast<const bool *>(c.nulls.data())
+							index, c.data.data() + offset, count,
+							reinterpret_cast<const bool *>(c.nulls.data() + offset)
 						);
 					}
 				},
@@ -288,22 +297,29 @@ void source::exec(const nanodbc::string &query, std::span<const db_type> params)
 void source::insert(
 	const nanodbc::string &query,
 	const db_data &data,
-	std::span<const nanodbc::string> columns
+	std::span<const nanodbc::string> columns,
+	size_t batch
 ) {
 	auto count = row_count(data);
 	if (count == 0)
 		return;
+	if (batch == 0)
+		batch = count;
 	nanodbc::statement insert_statement(_connection, query);
-	::bind(insert_statement, data, columns);
-	nanodbc::transact(insert_statement, count);
+	for (size_t offset = 0; offset < count; offset += batch) {
+		size_t chunk = (std::min)(batch, count - offset);
+		::bind(insert_statement, data, columns, offset, chunk);
+		nanodbc::transact(insert_statement, chunk);
+	}
 }
 
 void source::insert(
 	const nanodbc::string &query,
 	const db_data &data,
-	std::initializer_list<nanodbc::string> columns
+	std::initializer_list<nanodbc::string> columns,
+	size_t batch
 ) {
-	insert(query, data, std::span{columns.begin(), columns.end()});
+	insert(query, data, std::span{columns.begin(), columns.end()}, batch);
 }
 
 source::~source() = default;

@@ -1,8 +1,9 @@
 #include <gtest/gtest.h>
 #include <nanodbc/nanodbc.h>
 #include <print>
-#include <source.h>
 #include <variant>
+#include <ranges>
+#include <source.h>
 
 #ifdef ENABLE_COVERAGE
 extern "C" {
@@ -216,6 +217,37 @@ TEST_F(SyncTestNulls, SyncWithNulls) {
 
 	EXPECT_EQ(result, data);
 	EXPECT_EQ(data["id"], id_rows);
+}
+
+TEST_F(SyncTest, BatchInsertNonExactBoundary) {
+	exec_src("INSERT INTO users VALUES(2, 'bob', 3.5)");
+	exec_src("INSERT INTO users VALUES(3, 'charlie', 7.0)");
+	exec_src("INSERT INTO users VALUES(4, 'dave', 1.2)");
+	exec_src("INSERT INTO users VALUES(5, 'eve', 5.5)");
+	auto data = src->select("SELECT * FROM users");
+	dest->insert(
+		"INSERT INTO users(id, name, score) VALUES(?, ?, ?)", data,
+		{"id", "name", "score"}, 2
+	);
+	auto result = dest->select("SELECT * FROM users");
+	EXPECT_EQ(result["id"].size(), 5);
+	EXPECT_EQ(result, data);
+}
+
+TEST_F(SyncTest, BatchInsertLargeStringInSmallBatch) {
+	std::string big(1'000'000, 'x');
+	exec_src("INSERT INTO users VALUES(2, '" + big + "', 0.0)");
+	for (auto _ : std::views::iota(0, 500))
+		exec_src("INSERT INTO users VALUES(3, 'tiny', 0.0)");
+	auto data = src->select("SELECT * FROM users");
+	dest->insert(
+		"INSERT INTO users(id, name, score) VALUES(?, ?, ?)", data,
+		{"id", "name", "score"},
+		10
+	);
+	auto result = dest->select("SELECT * FROM users");
+	EXPECT_EQ(result["id"].size(), 502);
+	EXPECT_EQ(result, data);
 }
 
 TEST(filter, filter_basic) {

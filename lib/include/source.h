@@ -153,12 +153,14 @@ public:
 	void insert(
 		const nanodbc::string &query,
 		const db_data &data,
-		std::span<const nanodbc::string> columns
+		std::span<const nanodbc::string> columns = {},
+		size_t batch = 0
 	);
 	void insert(
 		const nanodbc::string &query,
 		const db_data &data,
-		std::initializer_list<nanodbc::string> columns
+		std::initializer_list<nanodbc::string> columns = {},
+		size_t batch = 0
 	);
 	~source();
 
