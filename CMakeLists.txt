@@ -17,21 +17,6 @@ set(gtest_force_shared_crt ON)
 include(FetchContent)
 include(CTest)
 
-find_package(Boost 1.91 CONFIG COMPONENTS headers program_options container)
-
-if(NOT Boost_FOUND)
-	message(STATUS "Boost not found")
-	set(BOOST_INCLUDE_LIBRARIES headers program_options container)
-	set(BOOST_ENABLE_CMAKE ON)
-	FetchContent_Declare(
-		Boost
-		URL https://github.com/boostorg/boost/releases/download/boost-1.91.0-1/boost-1.91.0-1-cmake.tar.gz
-		URL_HASH SHA256=8a82bd11a720c70923806c36ee5c26dbd2d630c1eaa1d8fad9a7bd5529908a26
-		DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-	)
-	FetchContent_MakeAvailable(Boost)
-endif()
-
 find_package(pybind11 CONFIG)
 
 if(NOT pybind11_FOUND)

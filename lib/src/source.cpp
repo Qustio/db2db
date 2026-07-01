@@ -2,7 +2,6 @@
 
 #include "nanodbc/nanodbc.h"
 #include "nanodbc_optional.cpp"
-#include <boost/container/vector.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <format>

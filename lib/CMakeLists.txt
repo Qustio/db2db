@@ -14,13 +14,8 @@ target_include_directories(
 	PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 set_target_properties(db2db PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
-message(STATUS "Boost version: ${Boost_VERSION}")
-get_target_property(BOOST_INC Boost::headers INTERFACE_INCLUDE_DIRECTORIES)
-message(STATUS "Boost include dirs: ${Boost_INCLUDE_DIRS}")
-message(STATUS "Boost::headers includes: ${BOOST_INC}")
-target_include_directories(db2db PRIVATE ${Boost_INCLUDE_DIRS})
 
-target_link_libraries(db2db PUBLIC nanodbc Boost::container)
+target_link_libraries(db2db PUBLIC nanodbc)
 
 if(ENABLE_COVERAGE)
 	target_compile_options(
