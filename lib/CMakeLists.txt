@@ -1,8 +1,4 @@
-if(ENABLE_COVERAGE)
-	add_library(db2db STATIC "src/source.cpp")
-else()
-	add_library(db2db SHARED "src/source.cpp")
-endif()
+add_library(db2db "src/source.cpp")
 
 target_compile_features(db2db PUBLIC cxx_std_23)
 
