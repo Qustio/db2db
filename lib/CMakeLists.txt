@@ -4,6 +4,8 @@ else()
 	add_library(db2db SHARED "src/source.cpp")
 endif()
 
+target_compile_features(db2db PUBLIC cxx_std_23)
+
 find_package(ODBC REQUIRED)
 find_package(nanodbc CONFIG)
 
