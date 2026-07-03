@@ -35,7 +35,7 @@ namespace {
 } // namespace
 #endif // ENABLE_COVERAGE
 
-class test_source : public source {
+class test_source : public db2db::source {
 public:
 	nanodbc::connection &connection() { return _connection; }
 };
@@ -52,7 +52,7 @@ protected:
 #endif
 		src = std::make_unique<test_source>(conn_str);
 		dest = std::make_unique<test_source>(conn_str2);
-		set_logger([](log_level lvl, std::string_view msg) {
+		db2db::set_logger([](db2db::log_level lvl, std::string_view msg) {
 			std::cout << msg << std::endl;
 		});
 	}
@@ -138,9 +138,9 @@ TEST_F(SelectTest, ReturnsCorrectRows) {
 	exec("INSERT INTO users VALUES(1, 'alice', 9.5)");
 	exec("INSERT INTO users VALUES(2, 'bob', 7.77)");
 	auto result = src->select("SELECT * FROM users");
-	auto id_rows = std::vector{db_type{1LL}, db_type{2LL}};
-	auto name_rows = std::vector{db_type{"alice"}, db_type{"bob"}};
-	auto score_rows = std::vector{db_type{9.5}, db_type{7.77}};
+	auto id_rows = std::vector{db2db::db_type{1LL}, db2db::db_type{2LL}};
+	auto name_rows = std::vector{db2db::db_type{"alice"}, db2db::db_type{"bob"}};
+	auto score_rows = std::vector{db2db::db_type{9.5}, db2db::db_type{7.77}};
 	EXPECT_EQ(result["id"], id_rows);
 	EXPECT_EQ(result["name"], name_rows);
 	EXPECT_EQ(result["score"], score_rows);
@@ -155,7 +155,7 @@ TEST_F(SelectTest, SelectOneNull) {
 TEST_F(SelectTest, SelectOneParams) {
 	exec("INSERT INTO users VALUES(1, 'alice', 9.5)");
 	auto result = src->select_one("SELECT name FROM users where id < ?", {5});
-	EXPECT_EQ(result, db_type{"alice"});
+	EXPECT_EQ(result, db2db::db_type{"alice"});
 }
 
 TEST_F(SyncTest, SyncBasic) {
@@ -186,7 +186,7 @@ TEST_F(SyncTest, SyncWithNulls) {
 		{"id", "name", "score"}
 	);
 	auto result = dest->select("SELECT * FROM users");
-	auto id_rows = std::vector{db_type{1LL}, db_type{}};
+	auto id_rows = std::vector{db2db::db_type{1LL}, db2db::db_type{}};
 
 	EXPECT_EQ(result, data);
 	EXPECT_EQ(data["id"], id_rows);
@@ -197,7 +197,7 @@ TEST_F(SyncTest, SyncIncremental) {
 	exec_src("INSERT INTO users VALUES(2, 'bob', 3.5)");
 	exec_src("INSERT INTO users VALUES(3, 'ivan', 1.1)");
 	auto last_id = dest->select_one("select max(id) from users");
-	EXPECT_EQ(last_id, db_type{1ll});
+	EXPECT_EQ(last_id, db2db::db_type{1ll});
 	auto data = src->select("SELECT * FROM users where id > ?", {last_id});
 	dest->insert(
 		"INSERT INTO users(id, name, score) VALUES(?, ?, ?)", data,
@@ -216,7 +216,7 @@ TEST_F(SyncTestNulls, SyncWithNulls) {
 		{"id", "name", "score"}
 	);
 	auto result = dest->select("SELECT * FROM users");
-	auto id_rows = std::vector{db_type{}, db_type{1LL}, db_type{}};
+	auto id_rows = std::vector{db2db::db_type{}, db2db::db_type{1LL}, db2db::db_type{}};
 
 	EXPECT_EQ(result, data);
 	EXPECT_EQ(data["id"], id_rows);
@@ -254,23 +254,23 @@ TEST_F(SyncTest, BatchInsertLargeStringInSmallBatch) {
 }
 
 TEST(filter, filter_basic) {
-	db_data in{{"id", {1, 2, 3, 4, 5}}, {"name", {"1", "2", "3", "4", "5"}}};
+	db2db::db_data in{{"id", {1, 2, 3, 4, 5}}, {"name", {"1", "2", "3", "4", "5"}}};
 	std::println("ok");
-	filter(in, "id", [](db_type &value) {
+	filter(in, "id", [](db2db::db_type &value) {
 		int id = std::get<int>(value);
 		return id <= 3 ? true : false;
 	});
-	std::vector<db_type> out_id{1, 2, 3};
-	std::vector<db_type> out_name{"1", "2", "3"};
+	std::vector<db2db::db_type> out_id{1, 2, 3};
+	std::vector<db2db::db_type> out_name{"1", "2", "3"};
 	EXPECT_EQ(in["id"], out_id);
 	EXPECT_EQ(in["name"], out_name);
 }
 
 TEST(filter, filter_empty) {
-	db_data in{};
-	db_data out{};
+	db2db::db_data in{};
+	db2db::db_data out{};
 	std::println("ok");
-	filter(in, "id", [](db_type &value) {
+	filter(in, "id", [](db2db::db_type &value) {
 		int id = std::get<int>(value);
 		return id <= 3 ? true : false;
 	});
@@ -279,19 +279,19 @@ TEST(filter, filter_empty) {
 
 TEST_F(db_type_test, mappings) {
 	auto r = src->select_one("SELECT CAST(123 as INTEGER)");
-	EXPECT_EQ(r, db_type{123ll});
+	EXPECT_EQ(r, db2db::db_type{123ll});
 	r = src->select_one("SELECT CAST(\"123\" as VARCHAR)");
-	EXPECT_EQ(r, db_type{"123"});
+	EXPECT_EQ(r, db2db::db_type{"123"});
 	r = src->select_one("SELECT CAST(\"123\" as NVARCHAR)");
-	EXPECT_EQ(r, db_type{"123"});
+	EXPECT_EQ(r, db2db::db_type{"123"});
 }
 
 TEST(db_data_size, scalesWithData) {
-	db_data small_data{
+	db2db::db_data small_data{
 		{"id", {1, 2}},
 		{"name", {"123", "0"}},
 	};
-	db_data large_data{
+	db2db::db_data large_data{
 		{"id", {1, 2, 3}},
 		{"name", {"123", "0", ""}},
 	};
@@ -299,12 +299,12 @@ TEST(db_data_size, scalesWithData) {
 }
 
 TEST(db_data_size, emptyIsZeroOrNear) {
-	db_data empty{};
+	db2db::db_data empty{};
 	EXPECT_EQ(db_data_size(empty), 0);
 }
 
 TEST(db_data_size, knownLayout) {
-	db_data data{
+	db2db::db_data data{
 		{"id", {1, 2, 3}},
 		{"name", {"123", "0", ""}},
 	};
