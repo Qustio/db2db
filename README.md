@@ -9,7 +9,7 @@ A small C++ ODBC abstaction for typed data transfer between databases
 - [ ] add LICENSE
 - [ ] write build instructions
 - [x] add namespace
-- [ ] move header to include/db2db/source.h
+- [x] move header to include/db2db/source.h
 - [ ] remove Windows.h/sqlext.h from public header
 - [ ] add install/export rules + db2db::db2db alias
 - [ ] fix operator== ignoring length (zip_transform truncates)

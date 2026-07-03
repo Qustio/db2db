@@ -3,7 +3,7 @@
 #include <print>
 #include <variant>
 #include <ranges>
-#include <source.h>
+#include <db2db/source.h>
 
 #ifdef ENABLE_COVERAGE
 extern "C" {
