@@ -1,7 +1,7 @@
 ﻿cmake_minimum_required(VERSION 3.21.0)
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 
-project("db2db")
+project("db2db" VERSION 0.1.1)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 	option(DB2DB_BUILD_TESTS "Build tests" ON)
@@ -26,6 +26,7 @@ set(INSTALL_GTEST OFF)
 set(gtest_force_shared_crt ON)
 
 include(FetchContent)
+include(GNUInstallDirs)
 
 if(DB2DB_BUILD_TESTS)
 	include(CTest)

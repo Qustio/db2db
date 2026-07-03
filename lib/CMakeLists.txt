@@ -12,12 +12,16 @@ if(NOT nanodbc_FOUND)
 		GIT_TAG fd9b4f551b0f03780168c4b2ba880dcb5777aad4
 	)
 	FetchContent_MakeAvailable(nanodbc)
+	install(TARGETS nanodbc EXPORT db2db-targets FILE_SET HEADERS)
 endif()
 
 target_include_directories(
 	db2db
-	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
-	PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
+	PUBLIC
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+	PRIVATE
+	${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 set_target_properties(db2db PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
@@ -30,6 +34,26 @@ add_custom_command(
 	${CMAKE_COMMAND} -E copy_if_different
 	$<TARGET_FILE:nanodbc>
 	$<TARGET_FILE_DIR:db2db>
+)
+
+install(
+	TARGETS db2db
+	EXPORT db2db-targets
+	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+install(
+	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+install(
+	EXPORT db2db-targets
+	# If we omit this, CMake will call the file [ExportName].cmake by default
+	FILE db2db.cmake
+	NAMESPACE db2db::
+	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/db2db
 )
 
 if(DB2DB_BUILD_TESTS)
