@@ -7,10 +7,16 @@
 #include <format>
 #include <fstream>
 #include <ranges>
-#include <sqlext.h>
 #include <stdexcept>
 #include <type_traits>
 #include <variant>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <Windows.h>
+#endif
+#include <sqlext.h>
 
 namespace nanodbc {
 
@@ -80,7 +86,7 @@ namespace db2db {
 						);
 						size_t max_len = 0;
 						for (const auto &str : chunk)
-							max_len = (std::max)(max_len, str.size());
+							max_len = std::max(max_len, str.size());
 						size_t alloc = max_len * count * sizeof(nanodbc::string::value_type);
 						if (g_logger) g_logger(log_level::debug, std::format("bind [{}]: {} strings, max_len={}, ~{} MB", col_name, count, max_len, alloc / (1024 * 1024)));
 						s.bind_strings(
@@ -326,7 +332,7 @@ namespace db2db {
 			batch = count;
 		nanodbc::statement insert_statement(_connection, query);
 		for (size_t offset = 0; offset < count; offset += batch) {
-			size_t chunk = (std::min)(batch, count - offset);
+			size_t chunk = std::min(batch, count - offset);
 			bind(insert_statement, data, columns, offset, chunk);
 			nanodbc::transact(insert_statement, chunk);
 		}

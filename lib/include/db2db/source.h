@@ -10,12 +10,6 @@
 #include <variant>
 #include <vector>
 
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#endif
-#include <sqlext.h>
-
 namespace nanodbc {
 	auto operator==(const nanodbc::date &a, const nanodbc::date &b) -> bool;
 
