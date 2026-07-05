@@ -3,13 +3,20 @@ set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 
 project("db2db" VERSION 0.1.1)
 
-if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+if(PROJECT_IS_TOP_LEVEL AND CMAKE_EXPORT_COMPILE_COMMANDS)
+  file(CREATE_LINK
+    ${CMAKE_BINARY_DIR}/compile_commands.json
+    ${CMAKE_SOURCE_DIR}/compile_commands.json
+    SYMBOLIC)
+endif()
+
+if(PROJECT_IS_TOP_LEVEL)
 	option(DB2DB_BUILD_TESTS "Build tests" ON)
 else()
 	option(DB2DB_BUILD_TESTS "Build tests" OFF)
 endif()
 
-if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+if(PROJECT_IS_TOP_LEVEL)
 	option(DB2DB_PYTHON_MODULE "Python module" ON)
 else()
 	option(DB2DB_PYTHON_MODULE "Python module" OFF)
