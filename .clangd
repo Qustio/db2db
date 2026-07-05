@@ -3,5 +3,5 @@ Diagnostics:
     Add:
       - modernize-*
 CompileFlags:
-  CompilationDatabase: build
+  CompilationDatabase: .
   Add: [-std=c++23]
